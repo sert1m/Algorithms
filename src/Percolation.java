@@ -49,7 +49,7 @@ public class Percolation {
 		if (row == 1)
 			connect(openedSite, virtualTopSite);
 		
-		if (row == size)
+		if (row == n)
 			connect(openedSite, virtualBottomSite);
 	}
 	
