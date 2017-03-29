@@ -40,11 +40,15 @@ public class Percolation {
 			
 		int openedSite = (row - 1) * n  + (col - 1);
 		siteStatus[openedSite] = true;
-
-		connect(openedSite, openedSite - 1);
-		connect(openedSite, openedSite + 1);
-		connect(openedSite, openedSite - n);
-		connect(openedSite, openedSite + n);
+		
+		if (col != 1)
+			connect(openedSite, openedSite - 1);
+		if (col != n)
+			connect(openedSite, openedSite + 1);
+		if (row != 1)
+			connect(openedSite, openedSite - n);
+		if (row != n)
+			connect(openedSite, openedSite + n);
 		
 		if (row == 1)
 			connect(openedSite, virtualTopSite);
