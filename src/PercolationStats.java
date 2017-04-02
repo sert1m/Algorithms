@@ -36,16 +36,13 @@ public class PercolationStats {
         int site = 0;
         Percolation percolation = new Percolation(n);
 
-        while (true) {
+        while (!percolation.percolates()) {
             int row = StdRandom.uniform(1, n + 1);
             int col = StdRandom.uniform(1, n + 1);
-
-            if (percolation.isFull(row, col)) {
+            
+            if (!percolation.isOpen(row, col)) {
                 percolation.open(row, col);
                 site++;
-
-                if (percolation.percolates())
-                    break;
             }
         }
 

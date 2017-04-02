@@ -3,11 +3,13 @@ import edu.princeton.cs.algs4.WeightedQuickUnionUF;
 public class Percolation {
 
     private WeightedQuickUnionUF unionFind;
+    private WeightedQuickUnionUF unionFindFull;
     private boolean[] siteStatus;
     private final int virtualTopSite;
     private final int virtualBottomSite;
     private final int n;
     private final int size;
+    private int numberOfOpenedSites;
 
     public Percolation(int n) {
         if (n <= 0)
@@ -18,60 +20,55 @@ public class Percolation {
 
         // Represent grid as array with two virtual nodes on top and bottom.
         unionFind = new WeightedQuickUnionUF(size + 2);
+        unionFindFull = new WeightedQuickUnionUF(size + 1);
 
         // Initialize status array
         siteStatus = new boolean[size + 2];
         for (int i = 0; i < siteStatus.length; i++)
-            siteStatus[i] = false;
+            setBlocked(i);
 
         // Store virtual indexes
         virtualTopSite = size;
-        virtualBottomSite = virtualTopSite + 1;
+        virtualBottomSite = size + 1;
 
         // Open Virtual Sites at the beginning
-        siteStatus[virtualTopSite] = true;
-        siteStatus[virtualBottomSite] = true;
+        setOpen(virtualTopSite);
+        setOpen(virtualBottomSite);
+        // Reset
+        numberOfOpenedSites = 0;
     }
 
     public void open(int row, int col) {
-        if (isOpen(row, col))
+        int site = convert(row, col);
+        
+        if (isOpen(site))
             return;
-
-        int openedSite = convert(row, col);
-        siteStatus[openedSite] = true;
+        setOpen(site);
 
         if (col != 1)
-            connect(openedSite, openedSite - 1);
+            connect(site, site - 1);
         if (col != n)
-            connect(openedSite, openedSite + 1);
+            connect(site, site + 1);
         if (row != 1)
-            connect(openedSite, openedSite - n);
+            connect(site, site - n);
         if (row != n)
-            connect(openedSite, openedSite + n);
+            connect(site, site + n);
 
         if (row == 1)
-            connect(openedSite, virtualTopSite);
+            connect(site, virtualTopSite);
         if (row == n)
-            connect(openedSite, virtualBottomSite);
+            connect(site, virtualBottomSite);
     }
 
     public boolean isOpen(int row, int col) {
-        return siteStatus[convert(row, col)];
+        return isOpen(convert(row, col));
     }
 
     public boolean isFull(int row, int col) {
-        int site = convert(row, col);
-        
-        return unionFind.connected(site, virtualTopSite);
+        return unionFindFull.connected(convert(row, col), virtualTopSite);
     }
 
     public int numberOfOpenSites() {
-        int numberOfOpenedSites = 0;
-
-        for (int i = 0; i < size; i++)
-            if (siteStatus[i])
-                numberOfOpenedSites++;
-
         return numberOfOpenedSites;
     }
 
@@ -80,14 +77,34 @@ public class Percolation {
     }
 
     private void connect(int i, int j) {
-        if (siteStatus[i] && siteStatus[j])
+        if (isOpen(i) && isOpen(j)) {
             unionFind.union(i, j);
+            if (i != virtualBottomSite && j != virtualBottomSite)
+                unionFindFull.union(i, j);
+        }
     }
 
     private int convert(int row, int col) {
         if ((row <= 0 || row > n) || (col <= 0 || col > n))
-            throw new IllegalArgumentException();
+            throw new IndexOutOfBoundsException();
 
         return (row - 1) * n + (col - 1);
+    }
+
+    private boolean isOpen(int i) {
+        return siteStatus[i];
+    }
+
+    private boolean isBlocked(int i) {
+        return !siteStatus[i];
+    }
+
+    private void setOpen(int i) {
+        siteStatus[i] = true;
+        numberOfOpenedSites++;
+    }
+
+    private void setBlocked(int i) {
+        siteStatus[i] = false;
     }
 }
