@@ -49,14 +49,15 @@ public class Percolation {
             connect(site, site - 1);
         if (col != n)
             connect(site, site + 1);
+        
         if (row != 1)
             connect(site, site - n);
+        else
+            connect(site, virtualTopSite);
+            
         if (row != n)
             connect(site, site + n);
-
-        if (row == 1)
-            connect(site, virtualTopSite);
-        if (row == n)
+        else
             connect(site, virtualBottomSite);
     }
 
