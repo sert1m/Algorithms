@@ -9,16 +9,19 @@ public class Board {
     private final int n;
     private int[][] blocks;
     private int zeroX, zeroY;
-    private Board previous; 
+    private Board previous;
+    private int moves;
     
+    // construct a board from an n-by-n array of blocks
+    // (where blocks[i][j] = block in row i, column j)
     public Board(int[][] blocks) {
         this(blocks, null);
     }
-    
+    // board dimension n
     public int dimension() {
         return n;
     }
-    
+    // number of blocks out of place
     public int hamming() {
         int outOfPlace = 0;
         for (int i = 0; i < n; i++) 
@@ -31,27 +34,27 @@ public class Board {
             }
         return outOfPlace;
     }
-    
+    // sum of Manhattan distances between blocks and goal
     public int manhattan() {
         int manhattan = 0;
         for (int i = 0; i < n; i++) 
             for (int j = 0; j < n; j++)
                 manhattan += manhattan(i, j);
         
-        return manhattan;
+        return manhattan + moves;
     }
-    
+    // is this board the goal board?
     public boolean isGoal() {
-        return manhattan() == 0;
+        return hamming() == 0;
     }
-    
+    // a board that is obtained by exchanging any pair of blocks
     public Board twin() {
         Board board = new Board(copyBlocks());
         board.swapRandomPair();
         
         return board;
     }
-    
+    // does this board equal y?
     public boolean equals(Object y) {
         Board temp = (Board) y;
         if (null == temp)
@@ -70,7 +73,7 @@ public class Board {
                 
         return true;
     }
-    
+    // all neighboring boards
     public Iterable<Board> neighbors() {
         List<Board> neighbors = new LinkedList<>();
         
@@ -82,7 +85,7 @@ public class Board {
         
         return neighbors;
     }
-    
+    // string representation of this board (in the output format specified below)
     public String toString() {
         StringBuffer buffer = new StringBuffer();
         buffer.append(n).append("\n");
@@ -95,6 +98,14 @@ public class Board {
         return buffer.toString();
     }
     
+    public Board getPrevious() {
+        return previous;
+    }
+    
+    public int getMoves() {
+        return moves;
+    }
+    
     private Board(int[][] blocks, Board previous) {
         this.blocks = blocks;
         this.n = blocks.length;
@@ -105,6 +116,9 @@ public class Board {
                     break;
                 }
         this.previous = previous;
+        
+        if (previous != null)
+            moves = previous.moves + 1;
     }
     
     private void updateZeroPosition(int i, int j) {
@@ -140,8 +154,14 @@ public class Board {
     }
     
     private void swapRandomPair() {
-        int i = StdRandom.uniform(0, n - 1);
-        int j = StdRandom.uniform(0, n);
+        
+        int i = 0; 
+        int j = 0;
+        
+        do {
+            i = StdRandom.uniform(0, n - 1);
+            j = StdRandom.uniform(0, n);
+        } while(blocks[i][j] != 0 && blocks[i + 1][j] != 0);
         
         swapPair(i, j, i + 1, j);
     }
