@@ -80,9 +80,10 @@ public class BoardTest extends TestCase {
         
         neighbors = (List<Board>) board.neighbors();
         boards.clear();
+        boards.add(board1);
         boards.add(board6);
         boards.add(board7);
-        assertEquals(2, boards.size());
+        assertEquals(3, boards.size());
         assertEquals(true, boards.containsAll(neighbors));
     }
 }

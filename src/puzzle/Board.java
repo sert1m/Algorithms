@@ -6,42 +6,41 @@ import java.util.List;
 import edu.princeton.cs.algs4.StdRandom;
 
 public class Board {
-    private final int n;
     private int[][] blocks;
-    private int zeroX, zeroY;
-    private Board previous;
-    private int moves;
+    private int n, zeroX, zeroY;
+    private int hamming, manhattan;
     
     // construct a board from an n-by-n array of blocks
     // (where blocks[i][j] = block in row i, column j)
     public Board(int[][] blocks) {
-        this(blocks, null);
+        this.n = blocks.length;
+        this.blocks = copyBlocks(blocks, n);
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                if (blocks[i][j] == 0) {
+                    updateZeroPosition(i, j);
+                    break;
+                }
+        hamming = manhattan = -1;
     }
+    
     // board dimension n
     public int dimension() {
         return n;
     }
     // number of blocks out of place
     public int hamming() {
-        int outOfPlace = 0;
-        for (int i = 0; i < n; i++) 
-            for (int j = 0; j < n; j++) {
-                if (blocks[i][j] == 0)
-                    continue;
-                
-                if (blocks[i][j] != getRequiredNumber(i, j))
-                    outOfPlace++;
-            }
-        return outOfPlace;
+        if (hamming == -1) 
+            hamming = countHamming();
+        
+        return hamming;
     }
     // sum of Manhattan distances between blocks and goal
     public int manhattan() {
-        int manhattan = 0;
-        for (int i = 0; i < n; i++) 
-            for (int j = 0; j < n; j++)
-                manhattan += manhattan(i, j);
+        if (manhattan == -1)
+            manhattan = countManhattan();
         
-        return manhattan + moves;
+        return manhattan;
     }
     // is this board the goal board?
     public boolean isGoal() {
@@ -49,17 +48,20 @@ public class Board {
     }
     // a board that is obtained by exchanging any pair of blocks
     public Board twin() {
-        Board board = new Board(copyBlocks());
+        Board board = new Board(copyBlocks(this.blocks, n));
         board.swapRandomPair();
         
         return board;
     }
     // does this board equal y?
     public boolean equals(Object y) {
-        Board temp = (Board) y;
-        if (null == temp)
+        if (y == null)
             return false;
         
+        if (y.getClass() != this.getClass())
+            return false;
+        
+        Board temp = (Board) y;
         if (this == temp)
             return true;
         
@@ -97,28 +99,27 @@ public class Board {
         
         return buffer.toString();
     }
-    
-    public Board getPrevious() {
-        return previous;
+
+    private int countHamming() {
+        int outOfPlace = 0;
+        for (int i = 0; i < n; i++) 
+            for (int j = 0; j < n; j++) {
+                if (blocks[i][j] == 0)
+                    continue;
+                
+                if (blocks[i][j] != getRequiredNumber(i, j))
+                    outOfPlace++;
+            }
+        return outOfPlace;
     }
-    
-    public int getMoves() {
-        return moves;
-    }
-    
-    private Board(int[][] blocks, Board previous) {
-        this.blocks = blocks;
-        this.n = blocks.length;
-        for (int i = 0; i < n; i++)
+
+    private int countManhattan() {
+        int manhattan = 0;
+        for (int i = 0; i < n; i++) 
             for (int j = 0; j < n; j++)
-                if (blocks[i][j] == 0) {
-                    updateZeroPosition(i, j);
-                    break;
-                }
-        this.previous = previous;
+                manhattan += manhattan(i, j);
         
-        if (previous != null)
-            moves = previous.moves + 1;
+        return manhattan;
     }
     
     private void updateZeroPosition(int i, int j) {
@@ -144,15 +145,6 @@ public class Board {
         return Math.abs(x - i) + Math.abs(y - j); 
     }
     
-    private int [][] copyBlocks() {
-        int [][] blocks = new int [n][n];
-        for (int i = 0; i < n; i++)
-            for (int j = 0; j < n; j++)
-                blocks[i][j] = this.blocks[i][j];
-        
-        return blocks;
-    }
-    
     private void swapRandomPair() {
         
         int i = 0; 
@@ -161,38 +153,50 @@ public class Board {
         do {
             i = StdRandom.uniform(0, n - 1);
             j = StdRandom.uniform(0, n);
-        } while(blocks[i][j] != 0 && blocks[i + 1][j] != 0);
+        } while (blocks[i][j] == 0 || blocks[i + 1][j] == 0);
         
         swapPair(i, j, i + 1, j);
     }
     
-    private void swapPair(int i, int j, int k, int l) {
-        blocks[i][j] = (blocks[i][j] ^ blocks[k][l]) ^ (blocks[k][l] = blocks[i][j]);
+    private void swapPair(int i, int j, int x, int y) {
+        int temp = blocks[i][j];
+        blocks[i][j] = blocks[x][y];
+        blocks[x][y] = temp;
         
         if (blocks[i][j] == 0) 
             updateZeroPosition(i, j);
         
-        if (blocks[k][l] == 0)
-            updateZeroPosition(k, l);
+        if (blocks[x][y] == 0)
+            updateZeroPosition(x, y);
+        
+        // Need to update scores
+        hamming = countHamming();
+        manhattan = countManhattan();
     }
     
     private Board createNeighbor(Moves direction) {
         int newZeroX = direction.moveX(zeroX);
         int newZeroY = direction.moveY(zeroY);
         
-        if (newZeroX < 0 || newZeroX > n)
+        if (newZeroX < 0 || newZeroX >= n)
             return null;
         
-        if (newZeroY < 0 || newZeroY > n)
+        if (newZeroY < 0 || newZeroY >= n)
             return null;
         
-        Board board = new Board(copyBlocks(), this);
+        Board board = new Board(copyBlocks(this.blocks, n));
         board.swapPair(zeroX, zeroY, newZeroX, newZeroY);
         
-        if (board.equals(previous))
-            return null;
-        
         return board;
+    }
+    
+    private static int [][] copyBlocks(int [][] blocks, int n) {
+        int [][] temp = new int [n][n];
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                temp[i][j] = blocks[i][j];
+        
+        return temp;
     }
     
     private enum Moves {
