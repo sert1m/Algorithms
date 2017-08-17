@@ -122,7 +122,7 @@ public class KdTree implements PointStorage {
         }
         
         public void draw() {
-            draw(root, null);
+            draw(root, field);
         }
         
         public Iterable<Point2D> range(RectHV rect) {
@@ -180,39 +180,32 @@ public class KdTree implements PointStorage {
                 range(node.right, tempRect, rect, list);
         }
         
-        private void draw(Node node, Node parent) {
+        private void draw(Node node, RectHV rect) {
             if (node == null)
                 return;
 
             StdDraw.setPenColor(StdDraw.BLACK);
             node.point.draw();
-            drawSplitter(node, parent);
+            drawSplitter(node, rect);
             
-            draw(node.left, node);
-            draw(node.right, node);
+            draw(node.left, node.splitRect(rect, true));
+            draw(node.right, node.splitRect(rect, false));
         }
         
-        private void drawSplitter(Node node, Node parent) {
-            if (parent == null) {
+        private void drawSplitter(Node node, RectHV rect) {
+            double xmin = rect.xmin();
+            double ymin = rect.ymin();
+            double xmax = rect.xmax();
+            double ymax = rect.ymax();
+            if (node.isVerticalSplit) {
                 StdDraw.setPenColor(StdDraw.RED);
-                StdDraw.line(node.point.x(), 0.0, node.point.x(), 1.0);
+                    xmin = xmax = node.point.x();
             }
             else {
-                if (node.isVerticalSplit) {
-                    StdDraw.setPenColor(StdDraw.RED);
-                    if (node.point.y() < parent.point.y())
-                        StdDraw.line(node.point.x(), 0.0, node.point.x(), parent.point.y());
-                    else
-                        StdDraw.line(node.point.x(), parent.point.y(), node.point.x(), 1.0);
-                }
-                else {
-                    StdDraw.setPenColor(StdDraw.BLUE);
-                    if (node.point.x() < parent.point.x())
-                        StdDraw.line(0.0, node.point.y(), parent.point.x(), node.point.y());
-                    else
-                        StdDraw.line(parent.point.x(), node.point.y(), 1.0, node.point.y());
-                }
+                StdDraw.setPenColor(StdDraw.BLUE);
+                ymin = ymax = node.point.y();
             }
+            StdDraw.line(xmin, ymin, xmax, ymax);
         }
     }
 }
