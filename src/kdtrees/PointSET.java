@@ -10,7 +10,7 @@ import edu.princeton.cs.algs4.RectHV;
 
 public class PointSET implements PointStorage {
     
-    private Set<Point2D> points;
+    private final Set<Point2D> points;
     public PointSET() {
         points = new TreeSet<>();
     }
@@ -52,8 +52,8 @@ public class PointSET implements PointStorage {
         
         Point2D nearest = null;
         double distance = Double.MAX_VALUE;
-        for(Point2D point : points) {
-            double d = p.distanceTo(point);
+        for (Point2D point : points) {
+            double d = p.distanceSquaredTo(point);
             if (d < distance) {
                 nearest = point;
                 distance = d;

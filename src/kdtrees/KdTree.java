@@ -1,5 +1,6 @@
 package kdtrees;
 
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -9,7 +10,7 @@ import edu.princeton.cs.algs4.StdDraw;
 
 public class KdTree implements PointStorage {
 
-    private BST2D bst;
+    private final BST2D bst;
 
     public KdTree() {
        bst = new BST2D();
@@ -43,7 +44,7 @@ public class KdTree implements PointStorage {
     public Point2D nearest(Point2D p) {
         if (p == null)
             throw new IllegalArgumentException();
-        return null;
+        return bst.nearest(p);
     }
 
     private class BST2D {
@@ -51,11 +52,11 @@ public class KdTree implements PointStorage {
         private final RectHV field = new RectHV(0.0, 0.0, 1.0, 1.0);
         
         private class Node {
-            Point2D point;
-            Node left, right;
+            private Point2D point;
+            private Node left, right;
 
-            int count;
-            boolean isVerticalSplit;
+            private int count;
+            private final boolean isVerticalSplit;
 
             Node(Point2D p, boolean isVertical) {
                 point = p;
@@ -64,10 +65,21 @@ public class KdTree implements PointStorage {
             }
             
             int compareWithPoint(Point2D p) {
-                if (isVerticalSplit) 
-                    return Point2D.X_ORDER.compare(p, point);
-                else
-                    return Point2D.Y_ORDER.compare(p, point);
+                Comparator<Point2D> first, second;
+                
+                if (isVerticalSplit) {
+                    first = Point2D.X_ORDER;
+                    second = Point2D.Y_ORDER;
+                } else {
+                    first = Point2D.Y_ORDER;
+                    second = Point2D.X_ORDER;
+                }
+                
+                int cmp = first.compare(p, point);
+                if (cmp == 0)
+                    cmp = second.compare(p, point);
+
+                return cmp;
             }
             
             void updateSize() {
@@ -103,6 +115,16 @@ public class KdTree implements PointStorage {
             }
         }
         
+        private class NearestPoint {
+            private Point2D point;
+            private double distance;
+            
+            public NearestPoint(Point2D p, double d) {
+                point = p;
+                distance = d;
+            }
+        }
+        
         public boolean isEmpty() {
             return root == null;
         }
@@ -131,6 +153,9 @@ public class KdTree implements PointStorage {
             return list;
         }
         
+        public Point2D nearest(Point2D p) {
+            return nearest(root, new NearestPoint(null, Double.MAX_VALUE), p).point;
+        }
         private Node put(Node node, boolean isVertical, Point2D p) {
             if (node == null)
                 return new Node(p, isVertical);
@@ -180,6 +205,37 @@ public class KdTree implements PointStorage {
                 range(node.right, tempRect, rect, list);
         }
         
+        private NearestPoint nearest(Node node, NearestPoint nearest, Point2D p) {
+            if (node == null)
+                return nearest;
+            
+            // count distance to current point
+            double currentDistance = node.point.distanceSquaredTo(p);
+            if (currentDistance < nearest.distance) {
+                nearest.point = node.point;
+                nearest.distance = currentDistance;
+            }
+            
+            // select in which order we will move first
+            Node first, second;
+            if (node.compareWithPoint(p) < 0) {
+                first = node.left;
+                second = node.right;
+            }
+            else {
+                first = node.right;
+                second = node.left;
+            }
+            
+            // recursively search points if necessary 
+            nearest = nearest(first, nearest, p);
+            if (Double.compare(currentDistance, nearest.distance) == 0) {
+                nearest = nearest(second, nearest, p);
+            }
+            
+            return nearest;
+        }
+        
         private void draw(Node node, RectHV rect) {
             if (node == null)
                 return;
@@ -199,11 +255,13 @@ public class KdTree implements PointStorage {
             double ymax = rect.ymax();
             if (node.isVerticalSplit) {
                 StdDraw.setPenColor(StdDraw.RED);
-                    xmin = xmax = node.point.x();
+                xmin = node.point.x();
+                xmax = node.point.x();
             }
             else {
                 StdDraw.setPenColor(StdDraw.BLUE);
-                ymin = ymax = node.point.y();
+                ymin = node.point.y();
+                ymax = node.point.y();
             }
             StdDraw.line(xmin, ymin, xmax, ymax);
         }
