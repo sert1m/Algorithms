@@ -55,36 +55,25 @@ public class KdTree implements PointStorage {
             private Point2D point;
             private Node left, right;
 
-            private int count;
+            private int size;
             private final boolean isVerticalSplit;
 
             Node(Point2D p, boolean isVertical) {
                 point = p;
-                count = 1;
+                size = 1;
                 isVerticalSplit = isVertical;
             }
             
             int compareWithPoint(Point2D p) {
-                Comparator<Point2D> first, second;
+                Comparator<Point2D> comparator = isVerticalSplit ? Point2D.X_ORDER : Point2D.Y_ORDER;
                 
-                if (isVerticalSplit) {
-                    first = Point2D.X_ORDER;
-                    second = Point2D.Y_ORDER;
-                } else {
-                    first = Point2D.Y_ORDER;
-                    second = Point2D.X_ORDER;
-                }
-                
-                int cmp = first.compare(p, point);
-                if (cmp == 0)
-                    cmp = second.compare(p, point);
+                int cmp = comparator.compare(p, point);
+                if (cmp == 0 && !p.equals(point))
+                    cmp = +1;
 
                 return cmp;
             }
             
-            void updateSize() {
-                count = 1 + size(left) + size(right);
-            }
             // first mins return left or upper rect depending on node state
             RectHV splitRect(RectHV rect, boolean first) {
                 double xmin = rect.xmin();
@@ -106,20 +95,18 @@ public class KdTree implements PointStorage {
                 }
                 return new RectHV(xmin, ymin, xmax, ymax);
             }
-            
-            private int size(Node node) {
-                if (node == null)
-                    return 0;
-                
-                return node.count;
+
+            void updateSize() {
+                size = 1 + size(left) + size(right);
             }
         }
         
         private class NearestPoint {
             private Point2D point;
+            // Square distance
             private double distance;
             
-            public NearestPoint(Point2D p, double d) {
+            NearestPoint(Point2D p, double d) {
                 point = p;
                 distance = d;
             }
@@ -130,11 +117,9 @@ public class KdTree implements PointStorage {
         }
         
         public int size() {
-            if (isEmpty())
-                return 0;
-            return root.count;
+            return size(root);
         }
-        
+
         public void insert(Point2D p) {
             root = put(root, true, p);
         }
@@ -154,8 +139,16 @@ public class KdTree implements PointStorage {
         }
         
         public Point2D nearest(Point2D p) {
-            return nearest(root, new NearestPoint(null, Double.MAX_VALUE), p).point;
+            return nearest(root, field, new NearestPoint(null, Double.MAX_VALUE), p).point;
         }
+        
+        private int size(Node node) {
+            if (node == null)
+                return 0;
+            
+            return node.size;
+        }
+        
         private Node put(Node node, boolean isVertical, Point2D p) {
             if (node == null)
                 return new Node(p, isVertical);
@@ -190,8 +183,8 @@ public class KdTree implements PointStorage {
             if (node == null)
                 return;
             
-            if (nodeRect == null)
-                nodeRect = field;
+            if (!nodeRect.intersects(rect))
+                return;
             
             if (rect.contains(node.point))
                 list.add(node.point);
@@ -205,7 +198,7 @@ public class KdTree implements PointStorage {
                 range(node.right, tempRect, rect, list);
         }
         
-        private NearestPoint nearest(Node node, NearestPoint nearest, Point2D p) {
+        private NearestPoint nearest(Node node, RectHV rect, NearestPoint nearest, Point2D p) {
             if (node == null)
                 return nearest;
             
@@ -216,24 +209,29 @@ public class KdTree implements PointStorage {
                 nearest.distance = currentDistance;
             }
             
-            // select in which order we will move first
-            Node first, second;
-            if (node.compareWithPoint(p) < 0) {
-                first = node.left;
-                second = node.right;
-            }
-            else {
+            Node first = node.left, second = node.right;
+            if (node.compareWithPoint(p) >= 0) {
                 first = node.right;
                 second = node.left;
             }
             
-            // recursively search points if necessary 
-            nearest = nearest(first, nearest, p);
-            if (Double.compare(currentDistance, nearest.distance) == 0) {
-                nearest = nearest(second, nearest, p);
-            }
+            RectHV temp = node.splitRect(rect, first == node.left);
+            if (isIntersects(temp, p, nearest.distance))
+                nearest = nearest(first, temp, nearest, p);
+            
+            temp = node.splitRect(rect, second == node.left);
+            if (isIntersects(temp, p, nearest.distance))
+                nearest = nearest(second, temp, nearest, p);
             
             return nearest;
+        }
+        
+        // Check if circle created by a point and its r2 intersects the rectangle created by a node splitting line
+        private boolean isIntersects(RectHV rect, Point2D p, double r2) {
+            double deltaX = p.x() - Math.max(rect.xmin(), Math.min(p.x(), rect.xmin() + rect.width()));
+            double deltaY = p.y() - Math.max(rect.ymin(), Math.min(p.y(), rect.ymin() + rect.height()));
+            
+            return (deltaX * deltaX + deltaY * deltaY) < r2;
         }
         
         private void draw(Node node, RectHV rect) {
