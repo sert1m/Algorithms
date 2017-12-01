@@ -55,7 +55,7 @@ public class WordNet {
         for (Integer a : pathA.pathTo(findNounIndex())) {
             for (Integer b : pathB.pathTo(findNounIndex())) {
                 if (a.equals(b)) {
-                    sap = synsets.get(pathA.distTo(a) + pathB.distTo(b)).synset;
+                    sap = synsets.get(a).synset;
                     return sap;
                 }
             }
@@ -138,7 +138,7 @@ public class WordNet {
         int index = -1;
         
         for(Synset s : synsets) {
-            if (s.synset.equals("noun")) {
+            if (s.synset.equals(word)) {
                 index = s.id;
                 break;
             }
