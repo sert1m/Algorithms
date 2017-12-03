@@ -1,9 +1,10 @@
 package wordnet;
 
-import java.util.Arrays;
-
 import edu.princeton.cs.algs4.Digraph;
+import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.Queue;
+import edu.princeton.cs.algs4.StdIn;
+import edu.princeton.cs.algs4.StdOut;
 
 public class SAP {
     // constructor takes a digraph (not necessarily a DAG)
@@ -102,9 +103,11 @@ public class SAP {
         }
         
         public void reset(int size) {
-            Arrays.fill(marked, null);
-            Arrays.fill(distToA, 0);
-            Arrays.fill(distToB, 0);
+            for (int i = 0; i < marked.length; i++) {
+                marked[i] = null;
+                distToA[i] = 0;
+                distToB[i] = 0;
+            }
         }
         
         private Digraph G;
@@ -133,6 +136,7 @@ public class SAP {
             
             return queue;
         }
+        
         private int getAnchestor(Queue<Integer> queueA, Queue<Integer> queueB) {
             int ancestor = NOT_FOUND;
             while(!queueA.isEmpty() && !queueB.isEmpty()) {
@@ -172,6 +176,17 @@ public class SAP {
             }
             
             return NOT_FOUND;
+        }
+    }
+    
+    public static void main(String[] args) {
+        In in = new In(args[0]);
+        Digraph G = new Digraph(in);
+        SAP sap = new SAP(G);
+        while(!StdIn.isEmpty()) {
+            int v = StdIn.readInt();
+            int w = StdIn.readInt();
+            StdOut.printf("length = %d, anchestor = %d\n", sap.length(v, w), sap.ancestor(v, w));
         }
     }
  }
