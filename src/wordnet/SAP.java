@@ -66,7 +66,7 @@ public class SAP {
     
     private boolean is_vertex_valid(int v)
     {
-        return ((v > 0) || (v < G.E() - 1));
+        return ((v > 0) || (v < G.V() - 1));
     }
     
     private class CommonAncestorSearcher {
@@ -74,14 +74,14 @@ public class SAP {
         CommonAncestorSearcher(Digraph G) {
             this.G = G;
             
-            int size = G.E();
+            int size = G.V();
             marked = new MarkType[size];
             distToA = new int[size];
             distToB = new int[size];
         }
         
         public int getAncestor(int a, int b) {
-            searcher.reset(G.E());
+            searcher.reset(G.V());
 
             Queue<Integer> queueA = createQueueAndSetDist(a, distToA, MarkType.MARK_A);
             Queue<Integer> queueB = createQueueAndSetDist(b, distToB, MarkType.MARK_B);
@@ -90,7 +90,7 @@ public class SAP {
         }
         
         public int getAncestor(Iterable<Integer> a, Iterable<Integer> b) {
-            searcher.reset(G.E());
+            searcher.reset(G.V());
 
             Queue<Integer> queueA = createQueueAndSetDist(a, distToA, MarkType.MARK_A);
             Queue<Integer> queueB = createQueueAndSetDist(b, distToB, MarkType.MARK_B);
@@ -139,7 +139,7 @@ public class SAP {
         
         private int getAnchestor(Queue<Integer> queueA, Queue<Integer> queueB) {
             int ancestor = NOT_FOUND;
-            while(!queueA.isEmpty() && !queueB.isEmpty()) {
+            while(!queueA.isEmpty() || !queueB.isEmpty()) {
                 ancestor = search_anchestor(queueA, MarkType.MARK_A, distToA);
                 if (ancestor != NOT_FOUND)
                     break;
@@ -158,7 +158,7 @@ public class SAP {
                 return NOT_FOUND;
             
             int level = distTo[queue.peek()];
-            while (level == distTo[queue.peek()])
+            while (!queue.isEmpty() && level == distTo[queue.peek()])
             {
                 int c = queue.dequeue();
                 for (int i : G.adj(c)) {

@@ -8,11 +8,12 @@ import junit.framework.TestCase;
 import wordnet.SAP;
 
 public class SAPTest  extends TestCase {
-    protected static Digraph digraph1;
-    protected SAP sap1;
+    protected static Digraph digraph1, digraph2;
+    protected SAP sap1, sap2;
    
     protected void setUp() throws Exception {
         sap1 = new SAP(digraph1);
+        sap2 = new SAP(digraph2);
     }
 
     protected void tearDown() throws Exception {
@@ -20,14 +21,22 @@ public class SAPTest  extends TestCase {
     }
     
     public void testSingleAnchestor() {
+        assertEquals(2, sap1.length(1, 4));
         assertEquals(2, sap1.ancestor(1, 4));
+        assertEquals(4, sap1.length(0, 6));
         assertEquals(2, sap1.ancestor(0, 6));
+        assertEquals(2, sap1.length(3, 5));
         assertEquals(4, sap1.ancestor(3, 5));
         
-        assertEquals(2, sap1.length(1, 4));
-        assertEquals(4, sap1.length(0, 3));
-        assertEquals(1, sap1.length(0, 10));
-        assertEquals(2, sap1.length(0, 9));
+        assertEquals(4, sap2.length(3, 11));
+        assertEquals(1, sap2.ancestor(3, 11));
+        assertEquals(3, sap2.length(9, 12));
+        assertEquals(5, sap2.ancestor(9, 12));
+        assertEquals(4, sap2.length(7, 2));
+        assertEquals(0, sap2.ancestor(7, 2));
+        
+        assertEquals(-1, sap2.length(1, 6));
+        assertEquals(-1, sap2.ancestor(1, 6));
     }
     
     public void testMultipleAnchestor() {
@@ -62,5 +71,18 @@ public class SAPTest  extends TestCase {
         digraph1.addEdge(10, 9);
         digraph1.addEdge(0, 10);
         digraph1.addEdge(7, 2);
+        
+        digraph2 = new Digraph(13);
+        digraph2.addEdge(7, 3);
+        digraph2.addEdge(8, 3);
+        digraph2.addEdge(3, 1);
+        digraph2.addEdge(4, 1);
+        digraph2.addEdge(5, 1);
+        digraph2.addEdge(9, 5);
+        digraph2.addEdge(10, 5);
+        digraph2.addEdge(11, 10);
+        digraph2.addEdge(12, 10);
+        digraph2.addEdge(1, 0);
+        digraph2.addEdge(2, 0);
     }
 }
