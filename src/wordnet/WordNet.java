@@ -1,27 +1,40 @@
 package wordnet;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import edu.princeton.cs.algs4.In;
-import edu.princeton.cs.algs4.BreadthFirstDirectedPaths;
+import edu.princeton.cs.algs4.Bag;
 import edu.princeton.cs.algs4.Digraph;
+import edu.princeton.cs.algs4.DirectedCycle;
+import edu.princeton.cs.algs4.In;
+import edu.princeton.cs.algs4.StdIn;
+import edu.princeton.cs.algs4.StdOut;
 
 public class WordNet {
+    private final List<String[]> synsetList;
+    private final Map<String, Bag<Integer>> nouns;
+    private final SAP sap;
+    private final Digraph g;
 
     // constructor takes the name of the two input files
     public WordNet(String synsets, String hypernyms) {
         if (synsets == null || hypernyms == null)
             throw new IllegalArgumentException("Invalid file names");
-
+        
+        this.synsetList = new ArrayList<>();
+        this.nouns = new HashMap<>();
+        
         readSynsets(synsets);
+        g = new Digraph(this.synsetList.size());
         createGraph(hypernyms);
+        sap = new SAP(g);
     };
 
     // returns all WordNet nouns
     public Iterable<String> nouns() {
-        return new DFS(g.reverse(), findNounIndex()).getReachable();
+        return nouns.keySet();
     };
 
     // is the word a WordNet noun?
@@ -29,84 +42,28 @@ public class WordNet {
         if (word == null)
             throw new IllegalArgumentException("word is null");
 
-        return distance("noun", word) < g.V();
+        return nouns.containsKey(word);
     };
 
     // distance between nounA and nounB (defined below)
     public int distance(String nounA, String nounB) {
-        if (nounA == null || nounB == null)
-            throw new IllegalArgumentException("nounA or nounB is null");
+        if (!isNoun(nounA) || !isNoun(nounB))
+            throw new IllegalArgumentException(nounA + " or " + nounB + " is not a noun");
         
-        BreadthFirstDirectedPaths bfdp = new BreadthFirstDirectedPaths(g, findIndex(nounA));
-        return bfdp.distTo(findIndex(nounB));
+        return sap.length(nouns.get(nounA), nouns.get(nounB));
     };
 
     // a synset (second field of synsets.txt) that is the common ancestor of nounA and nounB
     // in a shortest ancestral path (defined below)
     public String sap(String nounA, String nounB) {
-        if (nounA == null || nounB == null)
-            throw new IllegalArgumentException("nounA or nounB is null");
+        if (!isNoun(nounA) || !isNoun(nounB))
+            throw new IllegalArgumentException(nounA + " or " + nounB + " is not a noun");
         
-        BreadthFirstDirectedPaths pathA = new BreadthFirstDirectedPaths(g, findIndex(nounA));
-        BreadthFirstDirectedPaths pathB = new BreadthFirstDirectedPaths(g, findIndex(nounB));
-
-        String sap = null;
-        
-        for (Integer a : pathA.pathTo(findNounIndex())) {
-            for (Integer b : pathB.pathTo(findNounIndex())) {
-                if (a.equals(b)) {
-                    sap = synsets.get(a).synset;
-                    return sap;
-                }
-            }
-        }
-        
-        return sap;
+        int ancestor = sap.ancestor(nouns.get(nounA), nouns.get(nounB));
+        return synsetList.get(ancestor)[0];
     };
     
-    private List<Synset> synsets;
-    private Digraph g;
-    
-    private class Synset {
-        final public int id;
-        final public String synset;
-        
-        public Synset(int id, String synset) {
-            this.id = id;
-            this.synset = synset;
-        }
-    }
-    
-    private class DFS {
-        
-        public DFS(Digraph g, int v) {
-            this.g = g;
-            marked = new boolean[g.V()];
-            reachableSyns = new LinkedList<String>();
-            dfs(v);
-        }
-        
-        public Iterable<String> getReachable() {
-            return reachableSyns;
-        }
-        
-        private boolean [] marked;
-        private Digraph g;
-        private List<String> reachableSyns;
-        
-        private void dfs(int v) {
-            if (marked[v])
-                return;
-            
-            marked[v] = true;
-            reachableSyns.add(synsets.get(v).synset);
-            for (Integer i : g.adj(v)) 
-                dfs(i);
-        }
-    }
-    
     private void readSynsets(String synsets) {
-        this.synsets = new ArrayList<Synset>();
         In in = new In(synsets);
         while (!in.isEmpty()) {
             String str = in.readLine();
@@ -114,48 +71,63 @@ public class WordNet {
             if (data.length < 3)
                 throw new IllegalArgumentException("Invalid length of synset");
             
-            this.synsets.add(new Synset(Integer.valueOf(data[0]), data[1]));
+            this.synsetList.add(data[1].trim().split(" "));
+            
+            for (String noun : data[1].split(" ")) {
+                Bag<Integer> ids = nouns.get(noun);
+                if (ids == null)
+                {
+                    ids = new Bag<Integer>();
+                    ids.add(this.synsetList.size() - 1);
+                    nouns.put(noun, ids);
+                    continue;
+                }
+
+                ids.add(this.synsetList.size() - 1);
+            }
         }
     };
     
     private void createGraph(String hypernyms) {
-        g = new Digraph(synsets.size());
-        
         In in = new In(hypernyms);
         while (!in.isEmpty()) {
             String str = in.readLine();
             String [] data = str.split(",");
             for (int i = 1; i < data.length; i++)
-                g.addEdge(Integer.valueOf(data[0]), Integer.valueOf(data[i]));
+                g.addEdge(Integer.parseInt(data[0]), Integer.parseInt(data[i]));
+        }
+        
+        if (!isRootedDAG(g)) {
+            throw new java.lang.IllegalArgumentException("Not rooted DAG!");
         }
     }
     
-    private int findNounIndex() {
-        return findIndex("noun");
-    };
-    
-    private int findIndex(String word) {
-        int index = -1;
-        
-        for(Synset s : synsets) {
-            if (s.synset.equals(word)) {
-                index = s.id;
-                break;
-            }
+    private boolean isRootedDAG(Digraph G) {
+        DirectedCycle diCycle = new DirectedCycle(G);
+        if (diCycle.hasCycle()) {
+           return false;
         }
         
-        if (index == -1)
-            throw new IllegalArgumentException();
+        int roots = 0;
+        for (int vertex = 0; vertex < G.V(); vertex++) {
+           if (!G.adj(vertex).iterator().hasNext()) roots++;
+        }
         
-        return index;
+        return (roots == 1);
     }
     
     public static void main(String[] args) {
-        WordNet wordNet = new WordNet(args[0], args[1]);
-        Iterable<String> nouns = wordNet.nouns();
-        for (String s : nouns)
-            System.out.print(s + "\n");
-        
-        System.out.print(wordNet.sap("common_noun", "count_noun"));
+        WordNet wn = new WordNet(args[0], args[1]);
+        for (String s : wn.nouns()) {
+           StdOut.println(s);
+        }
+        while (!StdIn.isEmpty()) {
+           String nounA = StdIn.readLine();
+           String nounB = StdIn.readLine();
+           int distance   = wn.distance(nounA, nounB);
+           String ancestor = wn.sap(nounA, nounB);
+           StdOut.println("length = " + distance);
+           StdOut.println("ancestor = " + ancestor);
+        }
     }
  }

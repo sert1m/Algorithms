@@ -4,6 +4,7 @@ import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.StdOut;
 
 public class Outcast {
+    private final WordNet wordnet;
     // constructor takes a WordNet object
     public Outcast(WordNet wordnet) {
         this.wordnet = wordnet;
@@ -14,18 +15,14 @@ public class Outcast {
         int[] dist = new int[nouns.length];
         
         for (int i = 0; i < nouns.length; i++) {
-            for (int j = i + 1; j < nouns.length; j++)
-                addToAll(dist, wordnet.distance(nouns[i], nouns[j]));
+            for (int j = i + 1; j < nouns.length; j++) {
+                int d = wordnet.distance(nouns[i], nouns[j]);
+                dist[i] += d;
+                dist[j] += d;
+            }
         }
         
         return nouns[getMax(dist)];
-    }
-    
-    private WordNet wordnet;
-    
-    private void addToAll(int[] array, int number) {
-        for (int i = 0; i < array.length; i++) 
-            array[i] += number;
     }
     
     private int getMax(int[] array) {

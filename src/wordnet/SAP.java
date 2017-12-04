@@ -7,6 +7,10 @@ import edu.princeton.cs.algs4.StdIn;
 import edu.princeton.cs.algs4.StdOut;
 
 public class SAP {
+    private static final int NOT_FOUND = -1;
+    private final Digraph G;
+    private final CommonAncestorSearcher searcher;
+
     // constructor takes a digraph (not necessarily a DAG)
     public SAP(Digraph G) {
         this.G = G;
@@ -15,20 +19,20 @@ public class SAP {
 
     // length of shortest ancestral path between v and w; -1 if no such path
     public int length(int v, int w) {
-        if (!is_vertex_valid(v) || !is_vertex_valid(w))
+        if (!isVertexValid(v) || !isVertexValid(w))
             throw new IllegalArgumentException("Invalid vertex v = " + v + " w = " + w);
         
         int length = NOT_FOUND;
         int ancestor = searcher.getAncestor(v, w);
         if (ancestor != NOT_FOUND)
-            length = searcher.get_length(ancestor);
+            length = searcher.getLength(ancestor);
 
         return length;
     }
 
     // a common ancestor of v and w that participates in a shortest ancestral path; -1 if no such path
     public int ancestor(int v, int w) {
-        if (!is_vertex_valid(v) || !is_vertex_valid(w))
+        if (!isVertexValid(v) || !isVertexValid(w))
             throw new IllegalArgumentException("Invalid vertex v = " + v + " w = " + w);
 
         return searcher.getAncestor(v, w);
@@ -42,7 +46,7 @@ public class SAP {
         int length = NOT_FOUND;
         int ancestor = searcher.getAncestor(v, w);
         if (ancestor != NOT_FOUND)
-            length = searcher.get_length(ancestor);
+            length = searcher.getLength(ancestor);
 
         return length;
     }
@@ -55,21 +59,22 @@ public class SAP {
         return searcher.getAncestor(v, w);
     }
     
-    private Digraph G;
-    private CommonAncestorSearcher searcher;
-    private static final int NOT_FOUND = -1;
     private enum MarkType {
         UNMARKED,
         MARK_A,
         MARK_B;
     };
     
-    private boolean is_vertex_valid(int v)
+    private boolean isVertexValid(int v)
     {
         return ((v > 0) || (v < G.V() - 1));
     }
     
     private class CommonAncestorSearcher {
+        private final Digraph G;
+        private MarkType[] marked;
+        private int[] distToA;
+        private int[] distToB;
         
         CommonAncestorSearcher(Digraph G) {
             this.G = G;
@@ -83,8 +88,8 @@ public class SAP {
         public int getAncestor(int a, int b) {
             searcher.reset(G.V());
 
-            Queue<Integer> queueA = createQueueAndSetDist(a, distToA, MarkType.MARK_A);
-            Queue<Integer> queueB = createQueueAndSetDist(b, distToB, MarkType.MARK_B);
+            Queue<Integer> queueA = createQueueAndSetDist(a, distToA);
+            Queue<Integer> queueB = createQueueAndSetDist(b, distToB);
             
             return getAnchestor(queueA, queueB);
         }
@@ -92,13 +97,13 @@ public class SAP {
         public int getAncestor(Iterable<Integer> a, Iterable<Integer> b) {
             searcher.reset(G.V());
 
-            Queue<Integer> queueA = createQueueAndSetDist(a, distToA, MarkType.MARK_A);
-            Queue<Integer> queueB = createQueueAndSetDist(b, distToB, MarkType.MARK_B);
+            Queue<Integer> queueA = createQueueAndSetDist(a, distToA);
+            Queue<Integer> queueB = createQueueAndSetDist(b, distToB);
             
             return getAnchestor(queueA, queueB);
         }
         
-        public int get_length(int ancestor) {
+        public int getLength(int ancestor) {
             return distToA[ancestor] + distToB[ancestor];
         }
         
@@ -110,28 +115,22 @@ public class SAP {
             }
         }
         
-        private Digraph G;
-        private MarkType[] marked;
-        private int[] distToA;
-        private int[] distToB;
         
-        private Queue<Integer> createQueueAndSetDist(int v, int[]dist, MarkType type) {
+        private Queue<Integer> createQueueAndSetDist(int v, int[]dist) {
             Queue<Integer> queue = new Queue<>();
             
             queue.enqueue(v);
             dist[v] = 0;
-            marked[v] = type;
             
             return queue;
         }
         
-        private Queue<Integer> createQueueAndSetDist(Iterable<Integer> v, int[] dist, MarkType type) {
+        private Queue<Integer> createQueueAndSetDist(Iterable<Integer> v, int[] dist) {
             Queue<Integer> queue = new Queue<>();
             
-            for (Integer i : v) {
+            for (int i : v) {
                 queue.enqueue(i);
                 dist[i] = 0;
-                marked[i] = type;
             }
             
             return queue;
@@ -139,12 +138,12 @@ public class SAP {
         
         private int getAnchestor(Queue<Integer> queueA, Queue<Integer> queueB) {
             int ancestor = NOT_FOUND;
-            while(!queueA.isEmpty() || !queueB.isEmpty()) {
-                ancestor = search_anchestor(queueA, MarkType.MARK_A, distToA);
+            while (!queueA.isEmpty() || !queueB.isEmpty()) {
+                ancestor = searchAnchestor(queueA, MarkType.MARK_A, distToA);
                 if (ancestor != NOT_FOUND)
                     break;
                 
-                ancestor = search_anchestor(queueB, MarkType.MARK_B, distToB);
+                ancestor = searchAnchestor(queueB, MarkType.MARK_B, distToB);
                 if (ancestor != NOT_FOUND)
                     break;
             }
@@ -152,7 +151,7 @@ public class SAP {
             return ancestor;
         }
         
-        private int search_anchestor(Queue<Integer> queue, MarkType mark, int[] distTo)
+        private int searchAnchestor(Queue<Integer> queue, MarkType mark, int[] distTo)
         {
             if (queue.isEmpty())
                 return NOT_FOUND;
@@ -161,18 +160,17 @@ public class SAP {
             while (!queue.isEmpty() && level == distTo[queue.peek()])
             {
                 int c = queue.dequeue();
-                for (int i : G.adj(c)) {
-                    if (marked[i] == null) {
+                if (marked[c] == null) {
+                    for (int i : G.adj(c)) {
                         distTo[i] = distTo[c] + 1;
-                        marked[i] = mark;
                         queue.enqueue(i);
                     }
-                    else if (marked[i] != mark)
-                    {
-                        distTo[i] = distTo[c] + 1;
-                        return i;
-                    }
+                    marked[c] = mark;
                 }
+                else if (marked[c] != mark)
+                    return c;
+                else
+                    continue;
             }
             
             return NOT_FOUND;

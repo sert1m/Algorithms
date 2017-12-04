@@ -27,6 +27,7 @@ public class SAPTest  extends TestCase {
         assertEquals(2, sap1.ancestor(0, 6));
         assertEquals(2, sap1.length(3, 5));
         assertEquals(4, sap1.ancestor(3, 5));
+        assertEquals(0, sap1.length(1, 1));
         
         assertEquals(4, sap2.length(3, 11));
         assertEquals(1, sap2.ancestor(3, 11));
