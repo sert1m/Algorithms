@@ -49,12 +49,12 @@ public class SAPTest  extends TestCase {
         
         list2.add(8);
         
-        assertEquals(2, sap1.ancestor(list1, list2));
-        assertEquals(4, sap1.length(list1, list2));
+        assertEquals(8, sap1.ancestor(list1, list2));
+        assertEquals(3, sap1.length(list1, list2));
         
         list2.add(5);
-        assertEquals(4, sap1.ancestor(list1, list2));
-        assertEquals(2, sap1.length(list1, list2));
+        assertEquals(8, sap1.ancestor(list1, list2));
+        assertEquals(3, sap1.length(list1, list2));
     }
 
     static

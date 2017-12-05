@@ -1,3 +1,8 @@
+/**
+ * Solution for Algorithm pt2 
+ * Course link: https://www.coursera.org/learn/algorithms-part2
+ * Task specification: http://coursera.cs.princeton.edu/algs4/assignments/wordnet.html
+ */
 package wordnet;
 
 import java.util.ArrayList;
